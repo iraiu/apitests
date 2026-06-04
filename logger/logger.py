@@ -33,28 +33,36 @@ def _create_logger():
 
     return logger
 
-
-_logger = _create_logger()
-
-
 class Logger:
+    _logger = None
 
-    @staticmethod
-    def set_level(level: str | int) -> None:
-        _logger.setLevel(level)
+    @classmethod
+    def init(cls):
+        if cls._logger is None:
+            cls._logger = _create_logger()
 
-    @staticmethod
-    def info(message: str) -> None:
-        _logger.info(message)
+    @classmethod
+    def get_logger(cls):
+        if cls._logger is None:
+            raise RuntimeError("Logger is not initialized. Call Logger.init() first.")
+        return cls._logger
 
-    @staticmethod
-    def debug(message: str) -> None:
-        _logger.debug(message)
+    @classmethod
+    def set_level(cls, level: str | int) -> None:
+        cls.get_logger().setLevel(level)
 
-    @staticmethod
-    def error(message: str) -> None:
-        _logger.error(message)
+    @classmethod
+    def info(cls, message: str) -> None:
+        cls.get_logger().info(message)
 
-    @staticmethod
-    def step(message: str) -> None:
-        _logger.debug(f"[STEP] {message}")
+    @classmethod
+    def debug(cls, message: str) -> None:
+        cls.get_logger().debug(message)
+
+    @classmethod
+    def error(cls, message: str) -> None:
+        cls.get_logger().error(message)
+
+    @classmethod
+    def step(cls, message: str) -> None:
+        cls.get_logger().debug(f"[STEP] {message}")

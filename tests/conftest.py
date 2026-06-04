@@ -1,57 +1,169 @@
-from services.auth.auth_service import AuthService
-from services.auth.models.login_request import LoginRequest
-from services.auth.models.register_request import RegisterRequest
-from services.university.university_service import UniversityService
-from utils.api_utils import ApiUtils
 import pytest
 from faker import Faker
 
+from services.auth.auth_service import AuthService
+from services.auth.models.login_request import LoginRequest
+from services.auth.models.register_request import RegisterRequest
+from services.university.models.grade_response import GradeResponse
+from services.university.models.teacher_response import TeacherResponse
+from services.university.university_service import UniversityService
+from tests.factories.university_factory import UniversityFactory
+from utils.api_utils import ApiUtils
+from logger.logger import Logger
+
 faker = Faker()
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_logger():
+    Logger.init()
 
-@pytest.fixture(scope="function", autouse=False)
+
+def _validate_status_code(response, expected_status_code: int):
+    assert response.status_code == expected_status_code, (
+        f"Expected status code {expected_status_code}, "
+        f"got {response.status_code}. "
+        f"Response: {response.text}"
+    )
+
+
+@pytest.fixture(scope="function")
 def auth_api_utils_anonym():
-    api_utils = ApiUtils(url=AuthService.SERVICE_URL)
-    return api_utils
+    return ApiUtils(url=AuthService.SERVICE_URL)
 
 
-@pytest.fixture(scope="function", autouse=False)
+@pytest.fixture(scope="function")
 def university_api_utils_anonym():
-    api_utils = ApiUtils(url=UniversityService.SERVICE_URL)
-    return api_utils
+    return ApiUtils(url=UniversityService.SERVICE_URL)
 
 
-@pytest.fixture(scope="function", autouse=False)
+@pytest.fixture(scope="function")
 def access_token(auth_api_utils_anonym):
     auth_service = AuthService(auth_api_utils_anonym)
+
     username = faker.user_name()
-    password = faker.password(length=30,
-                              special_chars=True,
-                              digits=True,
-                              upper_case=True,
-                              lower_case=True
-                              )
+    password = faker.password(
+        length=30,
+        special_chars=True,
+        digits=True,
+        upper_case=True,
+        lower_case=True
+    )
+
     auth_service.register_user(
         register_request=RegisterRequest(
             username=username,
             password=password,
             password_repeat=password,
-            email=faker.email()))
-    login_response = auth_service.login_user(login_request=LoginRequest(
-        username=username,
-        password=password))
+            email=faker.email()
+        )
+    )
+
+    login_response = auth_service.login_user(
+        login_request=LoginRequest(
+            username=username,
+            password=password
+        )
+    )
+
     return login_response.access_token
 
 
-@pytest.fixture(scope="function", autouse=False)
+@pytest.fixture(scope="function")
 def auth_api_utils_admin(access_token):
-    api_utils = ApiUtils(url=AuthService.SERVICE_URL, headers={
-        "Authorization": f"Bearer {access_token}"})
-    return api_utils
+    return ApiUtils(
+        url=AuthService.SERVICE_URL,
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
 
 
-@pytest.fixture(scope="function", autouse=False)
+@pytest.fixture(scope="function")
 def university_api_utils_admin(access_token):
-    api_utils = ApiUtils(url=UniversityService.SERVICE_URL, headers={
-        "Authorization": f"Bearer {access_token}"})
-    return api_utils
+    return ApiUtils(
+        url=UniversityService.SERVICE_URL,
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
+
+
+@pytest.fixture(scope="function")
+def grades_stats_dataset(university_api_utils_admin):
+    university_service = UniversityService(
+        api_utils=university_api_utils_admin
+    )
+
+    teacher_response = university_service.create_teacher(
+        teacher_request=UniversityFactory.teacher_request()
+    )
+    _validate_status_code(teacher_response, 201)
+    teacher = TeacherResponse(**teacher_response.json())
+
+    another_teacher_response = university_service.create_teacher(
+        teacher_request=UniversityFactory.teacher_request()
+    )
+    _validate_status_code(another_teacher_response, 201)
+    another_teacher = TeacherResponse(**another_teacher_response.json())
+
+    group = university_service.create_group(
+        group_request=UniversityFactory.group_request()
+    )
+
+    another_group = university_service.create_group(
+        group_request=UniversityFactory.group_request()
+    )
+
+    student = university_service.create_student(
+        student_request=UniversityFactory.student_request(
+            group_id=group.id
+        )
+    )
+
+    another_student = university_service.create_student(
+        student_request=UniversityFactory.student_request(
+            group_id=another_group.id
+        )
+    )
+
+    grade_response_1 = university_service.create_grade(
+        grade_request=UniversityFactory.grade_request(
+            teacher_id=teacher.id,
+            student_id=student.id,
+            grade=4
+        )
+    )
+    _validate_status_code(grade_response_1, 201)
+    GradeResponse(**grade_response_1.json())
+
+    grade_response_2 = university_service.create_grade(
+        grade_request=UniversityFactory.grade_request(
+            teacher_id=teacher.id,
+            student_id=student.id,
+            grade=5
+        )
+    )
+    _validate_status_code(grade_response_2, 201)
+    GradeResponse(**grade_response_2.json())
+
+    another_grade_response = university_service.create_grade(
+        grade_request=UniversityFactory.grade_request(
+            teacher_id=another_teacher.id,
+            student_id=another_student.id,
+            grade=1
+        )
+    )
+    _validate_status_code(another_grade_response, 201)
+    GradeResponse(**another_grade_response.json())
+
+    return {
+        "university_service": university_service,
+        "teacher": teacher,
+        "student": student,
+        "group": group,
+        "another_student": another_student,
+        "expected_count": 2,
+        "expected_min": 4,
+        "expected_max": 5,
+        "expected_avg": 4.5,
+    }

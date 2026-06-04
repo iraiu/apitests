@@ -1,3 +1,4 @@
+import requests
 from services.general.base_service import BaseService
 from services.university.helpers.group_helper import GroupHelper
 from services.university.helpers.student_helper import StudentHelper
@@ -8,11 +9,10 @@ from services.university.models.student_response import StudentResponse
 from utils.api_utils import ApiUtils
 from services.university.helpers.grade_helper import GradeHelper
 from services.university.models.grade_request import GradeRequest
-from services.university.models.grade_response import GradeResponse
 from services.university.models.grade_stats_response import GradeStatsResponse
 from services.university.helpers.teacher_helper import TeacherHelper
 from services.university.models.teacher_request import TeacherRequest
-from services.university.models.teacher_response import TeacherResponse
+
 
 
 class UniversityService(BaseService):
@@ -44,8 +44,26 @@ class UniversityService(BaseService):
     def create_random_group_and_student(self):
         raise NotImplementedError
 
-    def get_grades_stats_raw(self):
-        return self.grade_helper.get_grades_stats()
+    def get_grades_stats_raw(
+            self,
+            student_id: int | None = None,
+            teacher_id: int | None = None,
+            group_id: int | None = None
+    ) -> requests.Response:
+        params = {
+            "student_id": student_id,
+            "teacher_id": teacher_id,
+            "group_id": group_id,
+        }
+        params = {
+            key: value
+            for key, value in params.items()
+            if value is not None
+        }
+
+        return self.grade_helper.get_grades_stats(
+            params=params
+        )
 
     def get_grades_stats(self) -> GradeStatsResponse:
         response = self.grade_helper.get_grades_stats()
@@ -55,23 +73,15 @@ class UniversityService(BaseService):
     def create_grade(
             self,
             grade_request: GradeRequest
-    ) -> GradeResponse:
-        response = self.grade_helper.post_grade(
+    ):
+        return self.grade_helper.post_grade(
             data=grade_request.model_dump()
         )
-
-        assert response.status_code == 201, response.text
-
-        return GradeResponse(**response.json())
 
     def create_teacher(
             self,
             teacher_request: TeacherRequest
-    ) -> TeacherResponse:
-        response = self.teacher_helper.post_teacher(
+    ):
+        return self.teacher_helper.post_teacher(
             json=teacher_request.model_dump()
         )
-
-        assert response.status_code == 201, response.text
-
-        return TeacherResponse(**response.json())

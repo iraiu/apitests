@@ -19,7 +19,11 @@ class TestGradesStatsContract:
 
         response = university_service.get_grades_stats_raw()
 
-        assert response.status_code in [401, 403], response.text
+        assert response.status_code == 403, (
+            f"Expected status code 403, "
+            f"got {response.status_code}. "
+            f"Response: {response.text}"
+        )
 
     def test_get_grades_stats_schema(self, university_api_utils_admin):
         university_service = UniversityService(

@@ -13,7 +13,11 @@ class GradeHelper(BaseHelper):
             data=data
         )
 
-    def get_grades_stats(self) -> requests.Response:
+    def get_grades_stats(
+            self,
+            params: dict | None = None
+    ) -> requests.Response:
         return self.api_utils.get(
-            self.GRADES_STATS_ENDPOINT
+            self.GRADES_STATS_ENDPOINT,
+            params=params
         )
