@@ -2,11 +2,12 @@ import random
 
 from faker import Faker
 
+from services.university.models.base_student import DegreeEnum
 from services.university.models.grade_request import GradeRequest
 from services.university.models.group_request import GroupRequest
 from services.university.models.student_request import StudentRequest
+from services.university.models.subject_enum import SubjectEnum
 from services.university.models.teacher_request import TeacherRequest
-from services.university.models.base_student import DegreeEnum
 
 faker = Faker()
 
@@ -14,32 +15,36 @@ faker = Faker()
 class UniversityFactory:
 
     @staticmethod
-    def teacher_request(subject: str = "History") -> TeacherRequest:
+    def create_teacher_request(
+            subject: SubjectEnum = SubjectEnum.HISTORY
+    ) -> TeacherRequest:
         return TeacherRequest(
             first_name=faker.first_name(),
             last_name=faker.last_name(),
-            subject=subject
+            subject=subject.value
         )
 
     @staticmethod
-    def group_request() -> GroupRequest:
+    def create_group_request() -> GroupRequest:
         return GroupRequest(
             name=faker.name()
         )
 
     @staticmethod
-    def student_request(group_id: int) -> StudentRequest:
+    def create_student_request(
+            group_id: int
+    ) -> StudentRequest:
         return StudentRequest(
             first_name=faker.first_name(),
             last_name=faker.last_name(),
             email=faker.email(),
-            degree=random.choice([option for option in DegreeEnum]),
+            degree=random.choice(list(DegreeEnum)),
             phone=faker.numerify("+7##########"),
             group_id=group_id
         )
 
     @staticmethod
-    def grade_request(
+    def create_grade_request(
             teacher_id: int,
             student_id: int,
             grade: int

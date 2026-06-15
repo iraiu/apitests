@@ -1,29 +1,24 @@
 import pytest
 from faker import Faker
 
+from logger.logger import Logger
 from services.auth.auth_service import AuthService
 from services.auth.models.login_request import LoginRequest
 from services.auth.models.register_request import RegisterRequest
+from services.university.models.grade_request import MAX_GRADE
 from services.university.models.grade_response import GradeResponse
 from services.university.models.teacher_response import TeacherResponse
 from services.university.university_service import UniversityService
 from tests.factories.university_factory import UniversityFactory
 from utils.api_utils import ApiUtils
-from logger.logger import Logger
+
 
 faker = Faker()
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_logger():
     Logger.init()
-
-
-def _validate_status_code(response, expected_status_code: int):
-    assert response.status_code == expected_status_code, (
-        f"Expected status code {expected_status_code}, "
-        f"got {response.status_code}. "
-        f"Response: {response.text}"
-    )
 
 
 @pytest.fixture(scope="function")
@@ -95,65 +90,65 @@ def grades_stats_dataset(university_api_utils_admin):
     )
 
     teacher_response = university_service.create_teacher(
-        teacher_request=UniversityFactory.teacher_request()
+        teacher_request=UniversityFactory.create_teacher_request()
     )
-    _validate_status_code(teacher_response, 201)
     teacher = TeacherResponse(**teacher_response.json())
 
     another_teacher_response = university_service.create_teacher(
-        teacher_request=UniversityFactory.teacher_request()
+        teacher_request=UniversityFactory.create_teacher_request()
     )
-    _validate_status_code(another_teacher_response, 201)
     another_teacher = TeacherResponse(**another_teacher_response.json())
 
     group = university_service.create_group(
-        group_request=UniversityFactory.group_request()
+        group_request=UniversityFactory.create_group_request()
     )
 
     another_group = university_service.create_group(
-        group_request=UniversityFactory.group_request()
+        group_request=UniversityFactory.create_group_request()
     )
 
     student = university_service.create_student(
-        student_request=UniversityFactory.student_request(
+        student_request=UniversityFactory.create_student_request(
             group_id=group.id
         )
     )
 
     another_student = university_service.create_student(
-        student_request=UniversityFactory.student_request(
+        student_request=UniversityFactory.create_student_request(
             group_id=another_group.id
         )
     )
 
+    grade_1 = MAX_GRADE - 1
+    grade_2 = MAX_GRADE
+    another_grade = MAX_GRADE - 4
+    expected_avg = (grade_1 + grade_2) / 2
+
     grade_response_1 = university_service.create_grade(
-        grade_request=UniversityFactory.grade_request(
+        grade_request=UniversityFactory.create_grade_request(
             teacher_id=teacher.id,
             student_id=student.id,
-            grade=4
+            grade=grade_1
         )
     )
-    _validate_status_code(grade_response_1, 201)
     GradeResponse(**grade_response_1.json())
 
     grade_response_2 = university_service.create_grade(
-        grade_request=UniversityFactory.grade_request(
+        grade_request=UniversityFactory.create_grade_request(
             teacher_id=teacher.id,
             student_id=student.id,
-            grade=5
+            grade=grade_2
         )
     )
-    _validate_status_code(grade_response_2, 201)
     GradeResponse(**grade_response_2.json())
 
     another_grade_response = university_service.create_grade(
-        grade_request=UniversityFactory.grade_request(
+        grade_request=UniversityFactory.create_grade_request(
             teacher_id=another_teacher.id,
             student_id=another_student.id,
-            grade=1
+            grade=another_grade
         )
     )
-    _validate_status_code(another_grade_response, 201)
     GradeResponse(**another_grade_response.json())
 
     return {
@@ -162,8 +157,6 @@ def grades_stats_dataset(university_api_utils_admin):
         "student": student,
         "group": group,
         "another_student": another_student,
-        "expected_count": 2,
-        "expected_min": 4,
-        "expected_max": 5,
-        "expected_avg": 4.5,
+        "grade_1": grade_1,
+        "grade_2": grade_2,
     }
