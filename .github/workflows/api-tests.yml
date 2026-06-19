@@ -24,27 +24,27 @@ jobs:
         run: |
           pip install ruff
           ruff check .
-          
-          - name: Create env file
-            run: |
-              cat > .env <<EOF
-              POSTGRES_USER=postgres
-              POSTGRES_PASSWORD=postgres
-              POSTGRES_DB_AUTH=auth
-              POSTGRES_DB_UNIVERSITY=university
-              AUTH_SERVICE_INTERNAL_URL=http://auth:8000
-              AUTH_SERVICE_API_URL=http://127.0.0.1:8000
-              UNIVERSITY_SERVICE_INTERNAL_URL=http://university:8000
-              UNIVERSITY_SERVICE_API_URL=http://127.0.0.1:8001
-              EOF
 
-          - name: Start services
-            run: docker compose up -d
+      - name: Create env file
+        run: |
+          cat > .env <<EOF
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB_AUTH=auth
+          POSTGRES_DB_UNIVERSITY=university
+          AUTH_SERVICE_INTERNAL_URL=http://auth:8000
+          AUTH_SERVICE_API_URL=http://127.0.0.1:8000
+          UNIVERSITY_SERVICE_INTERNAL_URL=http://university:8000
+          UNIVERSITY_SERVICE_API_URL=http://127.0.0.1:8001
+          EOF
 
-          - name: Wait for services
-            run: |
-              timeout 60 bash -c 'until curl -f http://127.0.0.1:8000/docs; do sleep 2; done'
-              timeout 60 bash -c 'until curl -f http://127.0.0.1:8001/docs; do sleep 2; done'
+      - name: Start services
+        run: docker compose up -d
 
-          - name: Run tests
-            run: pytest -v
+      - name: Wait for services
+        run: |
+          timeout 60 bash -c 'until curl -f http://127.0.0.1:8000/docs; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f http://127.0.0.1:8001/docs; do sleep 2; done'
+
+      - name: Run tests
+        run: pytest -v
