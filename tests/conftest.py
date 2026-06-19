@@ -122,7 +122,6 @@ def grades_stats_dataset(university_api_utils_admin):
     grade_1 = MAX_GRADE - 1
     grade_2 = MAX_GRADE
     another_grade = MAX_GRADE - 4
-    expected_avg = (grade_1 + grade_2) / 2
 
     grade_response_1 = university_service.create_grade(
         grade_request=UniversityFactory.create_grade_request(
