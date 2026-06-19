@@ -35,7 +35,7 @@ def university_api_utils_anonym():
 def access_token(auth_api_utils_anonym):
     auth_service = AuthService(auth_api_utils_anonym)
 
-    username = faker.user_name()
+    username = f"{faker.user_name()}_{faker.uuid4()}"
     password = faker.password(
         length=30,
         special_chars=True,

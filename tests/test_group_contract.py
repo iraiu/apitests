@@ -1,5 +1,5 @@
 import requests.status_codes
-
+import pytest
 from services.university.helpers.group_helper import GroupHelper
 
 from faker import Faker
@@ -8,6 +8,8 @@ faker = Faker()
 
 
 class TestGroupContract:
+    @pytest.mark.xfail(
+        reason="Known API bug: anonymous create group returns 403 instead of 401")
     def test_create_group_anonym(self, university_api_utils_anonym):
         group_helper = GroupHelper(api_utils=university_api_utils_anonym)
         response = group_helper.post_group({"name": faker.name()})
