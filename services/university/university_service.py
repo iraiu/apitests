@@ -13,10 +13,12 @@ from services.university.models.grade_request import GradeRequest
 from services.university.models.grade_stats_response import GradeStatsResponse
 from services.university.models.teacher_request import TeacherRequest
 from utils.api_utils import ApiUtils
+import os
 
 
 class UniversityService(BaseService):
-    SERVICE_URL = "http://localhost:8001"
+    SERVICE_URL = os.getenv ("UNIVERSITY_SERVICE_API_URL",
+                             "http://localhost:8001")
 
     def __init__(self, api_utils: ApiUtils):
         super().__init__(api_utils)
