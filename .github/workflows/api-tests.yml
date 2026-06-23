@@ -78,13 +78,17 @@ jobs:
             -v ${{ github.workspace }}/allure-results:/app/allure-results \
             api-tests pytest -v --alluredir=allure-results
 
-      - name: Generate Allure Report
-        uses: simple-elf/allure-report-action@v1.12
+      - name: Install Allure CLI
         if: always()
-        with:
-          allure_results: allure-results
-          allure_report: allure-report
-          keep_reports: 1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-jre
+          npm install -g allure-commandline
+
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          allure generate allure-results -o allure-report --clean
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
