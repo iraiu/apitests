@@ -3,6 +3,11 @@ name: API Tests
 on:
   pull_request:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -38,13 +43,55 @@ jobs:
           UNIVERSITY_SERVICE_API_URL=http://127.0.0.1:8001
           EOF
 
+      - name: Create Docker env file
+        run: |
+          cat > .env.docker <<EOF
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_DB_AUTH=auth
+          POSTGRES_DB_UNIVERSITY=university
+          AUTH_SERVICE_INTERNAL_URL=http://auth:8000
+          AUTH_SERVICE_API_URL=http://auth:8000
+          UNIVERSITY_SERVICE_INTERNAL_URL=http://university:8000
+          UNIVERSITY_SERVICE_API_URL=http://university:8000
+          EOF
+
       - name: Start services
         run: docker compose up -d
+
+      - name: Show Docker networks
+        run: docker network ls
 
       - name: Wait for services
         run: |
           timeout 60 bash -c 'until curl -f http://127.0.0.1:8000/docs; do sleep 2; done'
           timeout 60 bash -c 'until curl -f http://127.0.0.1:8001/docs; do sleep 2; done'
 
-      - name: Run tests
-        run: pytest -v
+      - name: Build test image
+        run: docker build -t api-tests .
+
+      - name: Run tests in Docker
+        run: |
+          docker run --rm \
+            --network apitests_default \
+            --env-file .env.docker \
+            -v ${{ github.workspace }}/allure-results:/app/allure-results \
+            api-tests pytest -v --alluredir=allure-results
+
+      - name: Generate Allure Report
+        uses: simple-elf/allure-report-action@v1.12
+        if: always()
+        with:
+          allure_results: allure-results
+          allure_report: allure-report
+          keep_reports: 1
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        if: always()
+        with:
+          path: allure-report
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        if: always()

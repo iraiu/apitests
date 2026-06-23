@@ -22,3 +22,5 @@ logs/
 .coverage
 htmlcov/
 .env.docker
+allure-results/
+allure-report/
